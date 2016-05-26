@@ -17,6 +17,7 @@ import requests
 import subprocess
 import sys
 import tempfile
+import urllib
 
 from github import standard_headers, get_issues
 
@@ -91,7 +92,10 @@ def replace_images(md):
 
     return re.sub(r'\!\[(.*?)\]\((.*?)\)', replace_image, md)
 
-def main(repo):
+def main(repo, milestone, label):
+    milestone_url = ""
+    if milestone:
+        milestone_url = 'https://github.com/{0}/milestones/{1}'.format(repo, urllib.quote(milestone))
 
     for number, title, body, issue in get_issues(repo):
 
@@ -105,6 +109,19 @@ def main(repo):
 
         if 'pull_request' in issue and issue['pull_request']['html_url']:
             continue
+
+        if milestone_url:
+            if not issue['milestone'] or issue['milestone']['html_url'] != milestone_url:
+                continue
+
+        if label:
+            found = False
+            for assigned_label in issue['labels']:
+                if assigned_label['name'] == label:
+                    found = True
+                    break
+            if not found:
+                continue
 
         print "Doing issue", number, title
 
@@ -148,6 +165,12 @@ parser = OptionParser(usage=usage)
 parser.add_option("-t", "--test",
                   action="store_true", dest="test", default=False,
                   help="Run doctests")
+parser.add_option("-m", "--milestone",
+                  metavar="MILESTONE", dest="milestone", default="",
+                  help="Only issues with this milestone")
+parser.add_option("-l", "--label",
+                  metavar="LABEL", dest="label", default="",
+                  help="Only issues with this label")
 
 (options, args) = parser.parse_args()
 
@@ -157,4 +180,4 @@ else:
     if len(args) != 1:
         parser.print_help()
     else:
-        main(args[0])
+        main(args[0], options.milestone, options.label)

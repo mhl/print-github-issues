@@ -92,7 +92,7 @@ def replace_images(md):
 
     return re.sub(r'\!\[(.*?)\]\((.*?)\)', replace_image, md)
 
-def main(repo, milestone, label):
+def main(repo, milestone, label, no_comments):
     milestone_url = ""
     if milestone:
         milestone_url = 'https://github.com/{0}/milestones/{1}'.format(repo, urllib.quote(milestone))
@@ -134,7 +134,7 @@ def main(repo, milestone, label):
             body = body.encode('utf-8')
             f.write(body)
             f.write("\n\n")
-            if issue['comments'] > 0:
+            if not no_comments and issue['comments'] > 0:
                 comments_request = requests.get(issue['comments_url'],
                                                 headers=standard_headers)
                 for comment in comments_request.json():
@@ -171,6 +171,9 @@ parser.add_option("-m", "--milestone",
 parser.add_option("-l", "--label",
                   metavar="LABEL", dest="label", default="",
                   help="Only issues with this label")
+parser.add_option("-n", "--no-comments",
+                  action="store_true", dest="no_comments", default=False,
+                  help="Exclude comments from output")
 
 (options, args) = parser.parse_args()
 
@@ -180,4 +183,4 @@ else:
     if len(args) != 1:
         parser.print_help()
     else:
-        main(args[0], options.milestone, options.label)
+        main(args[0], options.milestone, options.label, options.no_comments)
